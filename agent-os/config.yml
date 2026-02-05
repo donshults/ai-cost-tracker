@@ -1,0 +1,32 @@
+# Agent-OS Configuration for AI Cost Tracker
+# This file configures the Agent-OS framework for project management
+
+project:
+  name: "AI Cost Tracker"
+  description: "Cost tracking and reporting API for AI platform usage"
+  repository: "https://github.com/donshults/ai-cost-tracker"
+
+# Specification management
+specs:
+  directory: "./specs"
+  template: "default"
+
+# Coding standards
+standards:
+  directory: "./standards"
+  enforce: true
+
+# Task management
+tasks:
+  auto_create_branch: true
+  require_tests: true
+  require_docs: false
+
+# Integration settings
+integrations:
+  github:
+    enabled: true
+    auto_pr: false
+  context_vault:
+    enabled: true
+    workspace: "openclaw_default"
