@@ -1,105 +1,240 @@
 # AI Cost Tracker
 
-A cost tracking API for monitoring and reporting on AI platform usage across multiple projects and sessions.
-
-## Overview
-
-AI Cost Tracker provides:
-- Automated collection of usage data from AI platforms (Anthropic, etc.)
-- Cost breakdown by model, session type, and project
-- REST API for querying cost data (N8N, Python, etc.)
-- Daily summaries pushed to Context Vault for cross-tool visibility
-
-```
-AI Platform APIs (Anthropic, etc.)
-           ↓
-    Cost Tracker Service (FastAPI)
-           ↓
-    PostgreSQL (Neon) — raw usage data
-           ↓
-    REST API Endpoints — for queries
-           ↓
-    Context Vault — daily summaries (lightweight)
-```
+Track and analyze AI API usage costs across multiple providers (Anthropic Claude, Kimi, etc.). Built with Node.js, TypeScript, and PostgreSQL (Neon).
 
 ## Features
 
-### Data Collection
-- Periodic polling of Anthropic usage API
-- Session-level cost tracking
-- Project tagging via session labels
+- **Usage Logging**: Log API usage events with model, tokens, and metadata
+- **Cost Calculation**: Automatic cost calculation using up-to-date pricing
+- **Query & Aggregate**: Filter usage by date, project, model, or agent
+- **Summary Stats**: Daily/weekly/monthly aggregated summaries
+- **Multi-Provider Support**: Claude (Opus, Sonnet, Haiku), Kimi models
 
-### Cost Breakdown
-- By date (daily, weekly, monthly)
-- By model (Opus, Sonnet, Haiku, etc.)
-- By session type (main, subagent, heartbeat)
-- By project (via label mapping)
+## Supported Models & Pricing
 
-### API Endpoints
-| Endpoint | Description |
-|----------|-------------|
-| `GET /costs/daily` | Single day breakdown |
-| `GET /costs/range` | Date range query |
-| `GET /costs/summary/weekly` | Last 7 days summary |
-| `GET /costs/by-model` | Breakdown by model |
-| `GET /costs/by-session-type` | Breakdown by session type |
-| `GET /costs/by-project` | Breakdown by project |
+| Model | Input/1M | Output/1M | Cache Read/1M | Cache Write/1M |
+|-------|----------|-----------|---------------|----------------|
+| Claude Opus 4 | $15.00 | $75.00 | $1.50 | $18.75 |
+| Claude Sonnet 4 | $3.00 | $15.00 | $0.30 | $3.75 |
+| Claude Haiku 3.5 | $0.80 | $4.00 | $0.08 | $1.00 |
+| Kimi K2 | $2.00 | $8.00 | - | - |
+| Kimi K1.5 | $2.00 | $8.00 | - | - |
 
-### Context Vault Integration
-Daily summaries pushed as lightweight JSON (not full tables):
-```json
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database (Neon recommended)
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your database URL and API key
+
+# Run database migrations
+npm run db:migrate
+
+# Start development server
+npm run dev
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `API_KEY` | Yes | API authentication key |
+| `PORT` | No | Server port (default: 3000) |
+| `NODE_ENV` | No | Environment (development/production) |
+
+## API Endpoints
+
+### Health Check
+```
+GET /health
+```
+
+### Usage Records
+
+#### Log Usage
+```
+POST /api/usage
+Content-Type: application/json
+X-API-Key: your_api_key
+
 {
-  "date": "2026-02-05",
-  "total_cost": 52.30,
-  "by_model": {"opus": 48.50, "haiku": 0.80, "sonnet": 3.00},
-  "by_project": {"peakpaws": 15.00, "kanban": 8.50, "general": 28.80}
+  "model": "claude-sonnet-4",
+  "tokens_in": 1000,
+  "tokens_out": 500,
+  "project": "PeakPaws",
+  "agent": "peakpaws-safety-review",
+  "session_type": "subagent"
 }
 ```
 
-## Tech Stack
+#### Query Usage
+```
+GET /api/usage?start_date=2025-01-01&end_date=2025-01-31&project=PeakPaws
+X-API-Key: your_api_key
+```
 
-- **Backend**: Python 3.12, FastAPI
-- **Database**: PostgreSQL (Neon)
-- **Deployment**: Railway
-- **Integration**: Context Vault API, Anthropic Admin API
+Query parameters:
+- `start_date` - Filter from date (YYYY-MM-DD)
+- `end_date` - Filter to date (YYYY-MM-DD)
+- `project` - Filter by project name
+- `model` - Filter by model ID
+- `agent` - Filter by agent name
+- `session_type` - Filter by session type (main/subagent/heartbeat)
+- `limit` - Max records to return (default: 100)
+- `offset` - Pagination offset
+
+### Summary Stats
+
+#### Get Aggregated Summary
+```
+GET /api/usage/summary?start_date=2025-01-01&end_date=2025-01-31&group_by=day
+X-API-Key: your_api_key
+```
+
+Query parameters:
+- `start_date` - Start date (YYYY-MM-DD)
+- `end_date` - End date (YYYY-MM-DD)
+- `group_by` - Aggregation level: `day`, `week`, or `month`
+- `project` - Filter by project
+- `model` - Filter by model
+
+### Models
+
+#### List Supported Models
+```
+GET /api/models
+X-API-Key: your_api_key
+```
+
+#### Get Model Pricing
+```
+GET /api/models/claude-opus-4
+X-API-Key: your_api_key
+```
+
+## Database Schema
+
+### usage_records
+Stores individual API usage events.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| recorded_at | TIMESTAMP | When usage occurred |
+| model | VARCHAR(100) | Model identifier |
+| input_tokens | BIGINT | Input token count |
+| output_tokens | BIGINT | Output token count |
+| cache_read_tokens | BIGINT | Cache read tokens |
+| cache_write_tokens | BIGINT | Cache write tokens |
+| cost_usd | DECIMAL(12,6) | Computed cost |
+| project | VARCHAR(100) | Project name |
+| agent | VARCHAR(100) | Agent identifier |
+| session_type | VARCHAR(50) | main/subagent/heartbeat |
+| session_label | VARCHAR(255) | Full session label |
+
+### daily_summaries
+Pre-aggregated daily statistics.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| date | DATE | Summary date |
+| total_cost | DECIMAL(12,2) | Total daily cost |
+| total_requests | INTEGER | Request count |
+| by_model | JSONB | Breakdown by model |
+| by_project | JSONB | Breakdown by project |
+| by_agent | JSONB | Breakdown by agent |
+
+### project_mappings
+Label patterns for automatic project assignment.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| pattern | VARCHAR(255) | Glob pattern for matching |
+| project_name | VARCHAR(100) | Project to assign |
+| priority | INTEGER | Match priority |
+
+Default mappings:
+- `peakpaws-*` → PeakPaws
+- `kanban-*` → Kanban Board
+- `trading-*` → Trading Tools
+- `cost-tracker-*` → Cost Tracker
+- `*` → General (fallback)
 
 ## Development
 
 ```bash
-# Clone and setup
-git clone https://github.com/donshults/ai-cost-tracker.git
-cd ai-cost-tracker
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+# Run in watch mode
+npm run dev
 
-# Configure
-cp .env.example .env
-# Edit .env with your credentials
+# Build for production
+npm run build
 
-# Run locally
-uvicorn src.main:app --reload
+# Run production build
+npm start
+
+# Type check
+npm run typecheck
+
+# Run migrations
+npm run db:migrate
+```
+
+## Deployment
+
+### Railway
+
+1. Connect your repo to Railway
+2. Add PostgreSQL database (or use Neon)
+3. Set environment variables
+4. Deploy
+
+### Docker
+
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
 ```
 
 ## Project Structure
 
 ```
-ai-cost-tracker/
-├── src/
-│   ├── main.py              # FastAPI application
-│   ├── api/                  # API endpoints
-│   ├── services/             # Business logic
-│   │   ├── anthropic.py      # Anthropic API client
-│   │   ├── cost_aggregator.py
-│   │   └── context_vault.py  # CV integration
-│   ├── models/               # Database models
-│   └── schemas/              # Pydantic schemas
-├── agent-os/                 # Claude Code project management
-├── docs/                     # Documentation
-├── tests/                    # Test suites
-└── alembic/                  # Database migrations
+src/
+├── db/
+│   ├── index.ts          # Database connection
+│   └── migrate.ts        # Schema migrations
+├── middleware/
+│   ├── auth.ts           # API key authentication
+│   └── errorHandler.ts   # Error handling
+├── routes/
+│   ├── health.ts         # Health check
+│   ├── models.ts         # Model/pricing info
+│   └── usage.ts          # Usage CRUD & summary
+├── services/
+│   └── usageService.ts   # Business logic
+├── types/
+│   └── index.ts          # TypeScript types
+├── utils/
+│   └── pricing.ts        # Cost calculation
+└── index.ts              # Application entry
 ```
 
 ## License
 
-Proprietary - All rights reserved.
+MIT

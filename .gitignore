@@ -1,39 +1,23 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-.venv/
-ENV/
-
-# Environment
+# Dependencies
+node_modules/
+dist/
+*.log
 .env
 .env.local
 .env.*.local
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
-
-# Testing
-.pytest_cache/
-htmlcov/
-.coverage
-coverage.xml
-
-# Build
-dist/
-build/
-*.egg-info/
-
-# Logs
-*.log
-logs/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Test coverage
+coverage/
+
+# Build
+*.tsbuildinfo
