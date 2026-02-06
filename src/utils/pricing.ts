@@ -17,6 +17,13 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     cache_read_per_1m: 1.50,
     cache_write_per_1m: 18.75,
   },
+  'claude-opus-4-6': {
+    name: 'Claude Opus 4.6',
+    input_per_1m: 15.00,
+    output_per_1m: 75.00,
+    cache_read_per_1m: 1.50,
+    cache_write_per_1m: 18.75,
+  },
   'claude-sonnet-4': {
     name: 'Claude Sonnet 4',
     input_per_1m: 3.00,
