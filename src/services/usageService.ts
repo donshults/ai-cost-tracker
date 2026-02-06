@@ -381,7 +381,7 @@ export class UsageService {
         result.total_cost || 0,
         result.total_requests || 0,
         result.total_tokens_in || 0,
-        result.tokens_out || 0,
+        result.total_tokens_out || 0,
         JSON.stringify(result.by_model || {}),
         JSON.stringify(result.by_project || {}),
         JSON.stringify(result.by_agent || {})
