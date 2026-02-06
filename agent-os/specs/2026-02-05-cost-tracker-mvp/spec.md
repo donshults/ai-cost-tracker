@@ -179,3 +179,12 @@ Keep it small — no detailed records, just aggregates.
 3. ✅ N8N can call the API successfully
 4. ✅ Daily summary appears in Context Vault
 5. ✅ Collection runs automatically every 6 hours
+
+## Open Questions / Future Considerations
+
+1. **Kimi Rate Limits** — Kimi ($19/mo Moderato plan) doesn't expose token usage in dashboard. Need to monitor for rate limit errors from subagents. If we hit limits, consider:
+   - Throttling subagent spawns
+   - Switching to Sonnet for overflow
+   - Adding Clawdbot-level retry tracking
+
+2. **Provider Error Tracking** — Cost tracker could expand to monitor API errors by provider, not just costs. Would help identify rate limits, outages, billing issues early.
