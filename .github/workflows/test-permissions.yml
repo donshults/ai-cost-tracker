@@ -1,0 +1,12 @@
+# Test workflow to verify GitHub permissions
+
+name: Permission Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "GitHub permissions working!"
